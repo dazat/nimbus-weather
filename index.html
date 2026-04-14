@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="TripWeather"/>
+<meta name="theme-color" content="#0d2440"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<title>TripWeather</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#1a1a1a;min-height:100vh;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+.app{max-width:700px;margin:0 auto;background:#fff;min-height:100vh;border-left:1px solid #e5e5e0;border-right:1px solid #e5e5e0}
+button{cursor:pointer;font-family:inherit}
+input{font-family:inherit;font-size:14px;padding:8px 12px;border:1px solid #ddd;border-radius:8px;outline:none;width:100%}
+input:focus{border-color:#888}
+.badge{display:inline-block;border-radius:6px;padding:2px 8px;font-size:11px;white-space:nowrap;border:1px solid}
+.badge-clear{background:#eaf3de;border-color:#b0d070;color:#3b6d11}
+.badge-cloud{background:#f1efe8;border-color:#b4b2a9;color:#5f5e5a}
+.badge-rain{background:#e6f1fb;border-color:#85b7eb;color:#185fa5}
+.badge-storm{background:#fcebeb;border-color:#f09595;color:#a32d2d}
+.badge-snow{background:#e6f1fb;border-color:#85b7eb;color:#185fa5}
+.badge-success{background:#eaf3de;border-color:#b0d070;color:#3b6d11}
+.badge-warn{background:#faeeda;border-color:#ef9f27;color:#854f0b}
+.badge-danger{background:#fcebeb;border-color:#f09595;color:#a32d2d}
+.badge-info{background:#e6f1fb;border-color:#85b7eb;color:#185fa5}
+.badge-muted{background:#f1efe8;border-color:#b4b2a9;color:#5f5e5a}
+.badge-active{background:#d1fae5;border-color:#34d399;color:#065f46}
+.badge-upcoming{background:#dbeafe;border-color:#93c5fd;color:#1e40af}
+.badge-completed{background:#f1efe8;border-color:#b4b2a9;color:#5f5e5a}
+.day-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.day-card{border:1px solid #e5e5e0;border-radius:12px;padding:14px;cursor:pointer;background:#fff;transition:border-color .15s}
+.day-card:hover{border-color:#aaa}
+.day-card.sel{border-color:#378add;background:#e6f1fb}
+.hourly-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch}
+.hour-card{flex-shrink:0;min-width:80px;border:1px solid #e5e5e0;border-radius:12px;padding:10px 8px;text-align:center;background:#f5f5f0}
+.hour-card.rainy{background:#e6f1fb;border-color:#85b7eb}
+.tag{border-radius:50px;padding:5px 14px;font-size:13px;border:1px solid}
+.alert-box{border-radius:8px;padding:10px 14px;margin-bottom:1rem;font-size:13px}
+.alert-info{background:#e6f1fb;border:1px solid #85b7eb;color:#185fa5}
+.summary-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+.summary-table th{text-align:center;padding:8px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#888;font-weight:500;border-bottom:1px solid #e5e5e0;background:#f5f5f0}
+.summary-table th:first-child{text-align:left;padding-left:12px}
+.summary-table td{padding:9px 8px;border-bottom:1px solid #e5e5e0;text-align:center;color:#555}
+.summary-table td:first-child{text-align:left;padding-left:12px;color:#1a1a1a}
+.summary-table tr:nth-child(even) td{background:#fafaf8}
+.summary-table tr:hover td{background:#f0f0ea;cursor:pointer}
+.loading-pulse{color:#888;font-size:13px;padding:2rem;text-align:center;background:#f5f5f0;border-radius:12px;border:1px solid #e5e5e0}
+.mode-toggle{display:flex;gap:2px;background:#f5f5f0;border-radius:10px;padding:3px;border:1px solid #e5e5e0}
+.mode-btn{padding:5px 10px;border-radius:8px;border:1px solid transparent;background:transparent;font-size:12px;color:#888;transition:all .15s;white-space:nowrap}
+.mode-btn.on{background:#fff;border-color:#ddd;color:#1a1a1a}
+.right-now{border-radius:12px;padding:14px 16px;margin-bottom:1rem}
+.offline-bar{display:none;background:#faeeda;border-bottom:1px solid #ef9f27;padding:8px 1rem;font-size:12px;color:#854f0b;text-align:center}
+.trip-card{border:1px solid #e5e5e0;border-radius:16px;padding:1.25rem;margin-bottom:12px;background:#fff;transition:border-color .15s}
+.trip-card:hover{border-color:#aaa}
+.city-chip{display:inline-block;background:#f5f5f0;border:1px solid #e5e5e0;border-radius:50px;padding:3px 10px;font-size:12px;color:#555;margin:2px}
+.edit-city-row{border:1px solid #e5e5e0;border-radius:12px;margin-bottom:8px;overflow:hidden;background:#fff}
+.edit-city-hdr{display:flex;align-items:center;gap:8px;padding:12px 14px}
+.edit-city-form{padding:14px;border-top:1px solid #e5e5e0;background:#fafaf8}
+.icon-btn{width:32px;height:32px;border-radius:8px;border:1px solid #e5e5e0;background:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.icon-btn:hover{background:#f5f5f0}
+.icon-btn.del:hover{background:#fcebeb;border-color:#f09595;color:#a32d2d}
+.fl2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.flabel{display:block;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.dt-row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.dt-row input{flex:1}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:100;padding:1rem}
+.modal-box{background:#fff;border-radius:16px;padding:1.5rem;width:100%;max-width:340px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="offline-bar" id="offlineBar">Offline — showing cached data.</div>
+  <div id="root"></div>
+</div>
+<script>
+var OWM_KEY='1c78c3cb1f46e28d4bb0300b8d82e127';
+var screen='home',trips=[],currentTripId=null;
+var sel=0,dayI=0,mode='pack',tab='city';
+var editOpen=null,showModal=false,CITIES=[];
+
+window.addEventListener('online',function(){document.getElementById('offlineBar').style.display='none';});
+window.addEventListener('offline',function(){document.getElementById('offlineBar').style.display='block';});
+if(!navigator.onLine)document.getElementById('offlineBar').style.display='block';
+
+function loadTrips(){try{trips=JSON.parse(localStorage.getItem('tw_trips')||'[]');}catch(e){trips=[];}}
+function saveTrips(){try{localStorage.setItem('tw_trips',JSON.stringify(trips));}catch(e){}}
+function getTrip(){return trips.find(function(t){return t.id===currentTripId;})||null;}
+function cacheKey(tid,def){return'tw_w_'+tid+'_'+def.name+'_'+def.from;}
+function saveWCache(i){
+  var trip=getTrip();if(!trip)return;
+  var c=CITIES[i],def=trip.cityDefs[i];
+  try{localStorage.setItem(cacheKey(currentTripId,def),JSON.stringify({lat:c.lat,lon:c.lon,aqi:c.aqi,current:c.current,daily:c.daily,hourly:c.hourly,pack:c.pack,conf:c.conf,ts:Date.now()}));}catch(e){}
+}
+function loadWCache(tid,def){try{return JSON.parse(localStorage.getItem(cacheKey(tid,def))||'null');}catch(e){return null;}}
+
+function init(){
+  loadTrips();
+  if(!trips.length){
+    trips.push({id:'tw_1',name:'Europe Spring 2026',created:Date.now(),cityDefs:[
+      {id:'c1',name:'Paris',country:'France',from:'2026-04-20',to:'2026-04-23',dayTrips:[{name:'Mont-Saint-Michel',date:'2026-04-21'}]},
+      {id:'c2',name:'London',country:'UK',from:'2026-04-24',to:'2026-04-27',dayTrips:[]},
+      {id:'c3',name:'Amsterdam',country:'Netherlands',from:'2026-04-28',to:'2026-04-30',dayTrips:[{name:'Keukenhof Gardens',date:'2026-04-29'}]},
+      {id:'c4',name:'Brussels',country:'Belgium',from:'2026-05-01',to:'2026-05-03',dayTrips:[]}
+    ]});
+    saveTrips();
+  }
+  render();
+}
+
+function tripStatus(trip){
+  if(!trip.cityDefs.length)return'empty';
+  var now=new Date(),f=new Date(trip.cityDefs[0].from+'T00:00'),l=new Date(trip.cityDefs[trip.cityDefs.length-1].to+'T23:59');
+  return now<f?'upcoming':now>l?'completed':'active';
+}
+function tripRange(trip){
+  if(!trip.cityDefs.length)return'No cities yet';
+  var mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var f=new Date(trip.cityDefs[0].from+'T12:00'),l=new Date(trip.cityDefs[trip.cityDefs.length-1].to+'T12:00');
+  return mo[f.getMonth()]+' '+f.getDate()+' – '+mo[l.getMonth()]+' '+l.getDate()+', '+l.getFullYear();
+}
+function fmtRange(f,t){
+  var fd=new Date(f+'T12:00'),td=new Date(t+'T12:00');
+  var mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return mo[fd.getMonth()]+' '+fd.getDate()+'–'+td.getDate();
+}
+function fmtDate(s){
+  var d=new Date(s+'T12:00'),dn=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return dn[d.getDay()]+' '+mo[d.getMonth()]+' '+d.getDate();
+}
+function wmo(c){
+  if(c===0)return'Clear';if(c<=2)return c===1?'Mostly Clear':'Partly Cloudy';if(c===3)return'Overcast';
+  if(c<=48)return'Foggy';if(c<=55)return'Drizzle';if(c<=65)return'Rain';if(c<=77)return'Snow';
+  if(c<=82)return'Rain Showers';if(c<=99)return'Thunderstorm';return'Cloudy';
+}
+function owmCond(w){
+  var m=w[0].main,d=w[0].description;
+  if(m==='Clear')return'Clear';
+  if(m==='Clouds')return d.includes('few')||d.includes('scattered')?'Partly Cloudy':d.includes('broken')?'Mostly Cloudy':'Overcast';
+  if(m==='Rain'||m==='Drizzle')return'Rain';if(m==='Thunderstorm')return'Thunderstorm';return m;
+}
+function cc(c){
+  if(c==='Clear'||c==='Mostly Clear')return'badge-clear';
+  if(c==='Rain'||c==='Rain Showers'||c==='Drizzle')return'badge-rain';
+  if(c==='Thunderstorm')return'badge-storm';if(c==='Snow')return'badge-snow';return'badge-cloud';
+}
+function bdg(t,c){return'<span class="badge '+c+'">'+t+'</span>';}
+function confB(c){return c==='high'?bdg('Reliable','badge-success'):c==='medium'?bdg('May change','badge-warn'):bdg('Check closer','badge-danger');}
+function aqiB(a){if(a==null)return'';var L=['Good','Fair','Moderate','Poor','Very Poor'],C=['badge-success','badge-success','badge-warn','badge-danger','badge-danger'];return bdg('AQI: '+L[a-1],C[a-1]||'badge-muted');}
+function confFromDate(f){var d=Math.round((new Date(f+'T12:00')-new Date())/86400000);return d<=7?'high':d<=14?'medium':'low';}
+var CP=[{a:'#dbeafe',b:'#3b82f6',c:'#1e40af'},{a:'#fee2e2',b:'#f87171',c:'#991b1b'},{a:'#d1fae5',b:'#34d399',c:'#065f46'},{a:'#fef3c7',b:'#fbbf24',c:'#92400e'}];
+
+function openTrip(id){
+  currentTripId=id;sel=0;dayI=0;mode='pack';tab='city';editOpen=null;
+  var trip=trips.find(function(t){return t.id===id;});
+  CITIES=trip.cityDefs.map(function(def){
+    var wc=loadWCache(id,def);
+    if(wc&&wc.daily&&wc.daily.length)return Object.assign({},def,{loading:false,error:null,sub:def.country+' · '+fmtRange(def.from,def.to)},wc);
+    return Object.assign({},def,{loading:true,error:null,sub:def.country+' · '+fmtRange(def.from,def.to),lat:null,lon:null,aqi:null,current:null,daily:[],hourly:[],conf:'low',pack:[]});
+  });
+  screen='trip';render();
+  CITIES.forEach(function(c,i){if(c.loading)loadWeather(i);});
+}
+
+async function loadWeather(i){
+  var trip=getTrip();if(!trip||!trip.cityDefs[i])return;
+  var def=trip.cityDefs[i];
+  try{
+    var co=await geo(def.name,def.country);
+    CITIES[i].lat=co.lat;CITIES[i].lon=co.lon;
+    var res=await Promise.all([owmCur(co.lat,co.lon),owmAqi(co.lat,co.lon),meteo(co.lat,co.lon,def.from,def.to)]);
+    var cur=res[0],aq=res[1],fc=res[2];
+    CITIES[i].current={temp:Math.round(cur.main.temp),fl:Math.round(cur.main.feels_like),cond:owmCond(cur.weather),wind:Math.round(cur.wind.speed),humidity:cur.main.humidity,vis:Math.round(cur.visibility/160.934)/10+' mi'};
+    CITIES[i].aqi=aq.list[0].main.aqi;
+    var daily=[];
+    fc.daily.time.forEach(function(date,di){
+      var dt=def.dayTrips&&def.dayTrips.find(function(t){return t.date===date;});
+      daily.push({d:fmtDate(date),dateStr:date,hi:Math.round(fc.daily.temperature_2m_max[di]),lo:Math.round(fc.daily.temperature_2m_min[di]),fl:Math.round(fc.daily.apparent_temperature_max[di]),cond:wmo(fc.daily.weathercode[di]),rain:fc.daily.precipitation_probability_max[di]||0,wind:Math.round(fc.daily.windspeed_10m_max[di]),tripName:dt?dt.name:null});
+    });
+    CITIES[i].daily=daily;
+    var tH=[6,9,12,15,18,21],tL=['6am','9am','12pm','3pm','6pm','9pm'],hourly=[];
+    fc.hourly.time.forEach(function(dt,hi){
+      var p=dt.split('T'),date=p[0],hour=parseInt(p[1]);
+      if(date===def.from&&tH.includes(hour)){var idx=tH.indexOf(hour);hourly.push({t:tL[idx],temp:Math.round(fc.hourly.temperature_2m[hi]),fl:Math.round(fc.hourly.apparent_temperature[hi]),cond:wmo(fc.hourly.weathercode[hi]),rain:fc.hourly.precipitation_probability[hi]||0});}
+    });
+    CITIES[i].hourly=hourly;
+    var pk=new Set(),mn=Math.min.apply(null,daily.map(function(d){return d.lo;})||[60]),mx=Math.max.apply(null,daily.map(function(d){return d.hi;})||[60]);
+    if(daily.some(function(d){return d.rain>=50;})){pk.add('Rain jacket');pk.add('Umbrella');}
+    if(mn<45){pk.add('Warm layers');pk.add('Gloves');}
+    if(mn<55)pk.add('Light jacket');if(mx>65)pk.add('Sunscreen');if(mx>70)pk.add('Sunglasses');
+    pk.add('Comfortable walking shoes');if(def.dayTrips&&def.dayTrips.length)pk.add('Day trip bag');
+    CITIES[i].pack=Array.from(pk);
+    CITIES[i].conf=confFromDate(def.from);CITIES[i].loading=false;CITIES[i].error=null;
+    saveWCache(i);
+  }catch(e){
+    var wc=loadWCache(currentTripId,def);
+    if(wc&&wc.daily){Object.assign(CITIES[i],wc,{loading:false,error:'Cached data from '+(wc.ts?new Date(wc.ts).toLocaleDateString():'')});}
+    else{CITIES[i].loading=false;CITIES[i].error='Could not load weather.';}
+  }
+  if(screen==='trip')render();
+}
+
+async function geo(name,country){
+  var q=country?name+','+country:name;
+  var r=await fetch('https://api.openweathermap.org/geo/1.0/direct?q='+encodeURIComponent(q)+'&limit=1&appid='+OWM_KEY);
+  var d=await r.json();if(!d||!d.length)throw new Error('City not found: '+name);return{lat:d[0].lat,lon:d[0].lon};
+}
+async function owmCur(lat,lon){var r=await fetch('https://api.openweathermap.org/data/2.5/weather?lat='+lat+'&lon='+lon+'&appid='+OWM_KEY+'&units=imperial');return r.json();}
+async function owmAqi(lat,lon){var r=await fetch('https://api.openweathermap.org/data/2.5/air_pollution?lat='+lat+'&lon='+lon+'&appid='+OWM_KEY);return r.json();}
+async function meteo(lat,lon,from,to){
+  var r=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max,precipitation_probability_max,windspeed_10m_max,weathercode&hourly=temperature_2m,apparent_temperature,precipitation_probability,weathercode&temperature_unit=fahrenheit&windspeed_unit=mph&timezone=auto&start_date='+from+'&end_date='+to);
+  return r.json();
+}
+
+/* ── Trip editing ── */
+function renameTripOnBlur(){
+  var v=(document.getElementById('tnm')||{}).value;if(!v||!v.trim())return;
+  var trip=getTrip();if(trip){trip.name=v.trim();saveTrips();}
+}
+function toggleEdit(i){editOpen=editOpen===i?null:i;render();}
+
+function saveCity(i){
+  var n=(document.getElementById('ec_n').value||'').trim();
+  var co=(document.getElementById('ec_co').value||'').trim();
+  var f=document.getElementById('ec_f').value;
+  var t=document.getElementById('ec_t').value;
+  if(!n||!f||!t){alert('Name and dates required.');return;}
+  var dts=[];
+  document.querySelectorAll('.dt-row').forEach(function(row){
+    var nm=row.querySelector('.dt-n').value.trim();
+    var dt=row.querySelector('.dt-d').value;
+    if(nm)dts.push({name:nm,date:dt||f});
+  });
+  var trip=getTrip();
+  trip.cityDefs[i]=Object.assign({},trip.cityDefs[i],{name:n,country:co,from:f,to:t,dayTrips:dts});
+  saveTrips();
+  CITIES[i]=Object.assign({},trip.cityDefs[i],{loading:true,error:null,sub:co+' · '+fmtRange(f,t),lat:null,lon:null,aqi:null,current:null,daily:[],hourly:[],conf:'low',pack:[]});
+  editOpen=null;render();loadWeather(i);
+}
+
+function delCity(i){
+  var trip=getTrip();
+  if(!confirm('Remove '+trip.cityDefs[i].name+' from this trip?'))return;
+  trip.cityDefs.splice(i,1);CITIES.splice(i,1);saveTrips();
+  if(sel>=CITIES.length)sel=Math.max(0,CITIES.length-1);
+  editOpen=null;render();
+}
+
+function moveCity(i,d){
+  var trip=getTrip();var j=i+d;
+  if(j<0||j>=trip.cityDefs.length)return;
+  var tmp=trip.cityDefs[i];trip.cityDefs[i]=trip.cityDefs[j];trip.cityDefs[j]=tmp;
+  var tmp2=CITIES[i];CITIES[i]=CITIES[j];CITIES[j]=tmp2;
+  saveTrips();editOpen=null;render();
+}
+
+function addDtRow(){
+  var c=document.getElementById('dt_c');if(!c)return;
+  var row=document.createElement('div');row.className='dt-row';
+  row.innerHTML='<input class="dt-n" type="text" placeholder="Day trip destination"/><input class="dt-d" type="date" style="max-width:140px"/><button class="icon-btn del" onclick="this.parentElement.remove()" type="button">✕</button>';
+  c.appendChild(row);
+}
+
+function addCity(){
+  var n=(document.getElementById('nc_n').value||'').trim();
+  var co=(document.getElementById('nc_co').value||'').trim();
+  var f=document.getElementById('nc_f').value;
+  var t=document.getElementById('nc_t').value;
+  var dt=(document.getElementById('nc_dt').value||'').trim();
+  if(!n||!f||!t){alert('Name and dates required.');return;}
+  var trip=getTrip();
+  var def={id:'c_'+Date.now(),name:n,country:co,from:f,to:t,dayTrips:dt?[{name:dt,date:f}]:[]};
+  trip.cityDefs.push(def);saveTrips();
+  CITIES.push(Object.assign({},def,{loading:true,error:null,sub:co+' · '+fmtRange(f,t),lat:null,lon:null,aqi:null,current:null,daily:[],hourly:[],conf:'low',pack:[]}));
+  ['nc_n','nc_co','nc_dt'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['nc_f','nc_t'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  render();loadWeather(CITIES.length-1);
+}
+
+function createTrip(){
+  var n=(document.getElementById('nt_n').value||'').trim();
+  if(!n)return;
+  var trip={id:'tw_'+Date.now(),name:n,created:Date.now(),cityDefs:[]};
+  trips.unshift(trip);saveTrips();
+  currentTripId=trip.id;CITIES=[];editOpen=null;showModal=false;screen='edit';render();
+}
+
+function delTrip(id){
+  if(!confirm('Delete this trip permanently?'))return;
+  trips=trips.filter(function(t){return t.id!==id;});saveTrips();
+  if(currentTripId===id){currentTripId=null;CITIES=[];}
+  screen='home';render();
+}
+
+/* ── Render ── */
+function render(){
+  if(screen==='home')rHome();
+  else if(screen==='trip')rTrip();
+  else if(screen==='edit')rEdit();
+}
+
+function rHome(){
+  var active=trips.filter(function(t){var s=tripStatus(t);return s!=='completed';});
+  var past=trips.filter(function(t){return tripStatus(t)==='completed';});
+  var h='<div style="background:#0d2440;padding:1.5rem 1rem 1.25rem;position:sticky;top:0;z-index:10">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between">';
+  h+='<div style="font-size:22px;font-weight:700;color:#fff;letter-spacing:-.3px">TripWeather</div>';
+  h+='<button onclick="showModal=true;render()" style="padding:8px 18px;border-radius:50px;border:none;background:#f7c832;color:#0d2440;font-size:13px;font-weight:600">+ New trip</button>';
+  h+='</div></div>';
+  h+='<div style="padding:1rem">';
+  if(active.length){
+    h+='<div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">My trips</div>';
+    active.forEach(function(trip){h+=rTripCard(trip);});
+  }
+  if(past.length){
+    h+='<div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin:'+(active.length?'1.5rem':'0')+' 0 10px">Past trips</div>';
+    past.forEach(function(trip){h+=rTripCard(trip);});
+  }
+  if(!trips.length){
+    h+='<div style="text-align:center;padding:4rem 1rem;color:#888">';
+    h+='<div style="font-size:40px;margin-bottom:16px">✈</div>';
+    h+='<div style="font-size:17px;font-weight:600;margin-bottom:8px;color:#1a1a1a">No trips yet</div>';
+    h+='<div style="font-size:14px">Tap + New trip to get started</div></div>';
+  }
+  h+='</div>';
+  if(showModal){
+    h+='<div class="modal-bg" onclick="if(event.target===this){showModal=false;render()}">';
+    h+='<div class="modal-box">';
+    h+='<div style="font-size:18px;font-weight:600;margin-bottom:1rem">New trip</div>';
+    h+='<label class="flabel">Trip name</label>';
+    h+='<input id="nt_n" type="text" placeholder="e.g. Japan Fall 2026" style="margin-bottom:1rem"/>';
+    h+='<div style="display:flex;gap:8px">';
+    h+='<button onclick="createTrip()" style="flex:1;padding:10px;border-radius:8px;border:none;background:#0d2440;color:#fff;font-size:14px;font-weight:500">Create</button>';
+    h+='<button onclick="showModal=false;render()" style="flex:1;padding:10px;border-radius:8px;border:1px solid #e5e5e0;background:transparent;font-size:14px;color:#888">Cancel</button>';
+    h+='</div></div></div>';
+  }
+  document.getElementById('root').innerHTML=h;
+  if(showModal)setTimeout(function(){var e=document.getElementById('nt_n');if(e)e.focus();},40);
+}
+
+function rTripCard(trip){
+  var st=tripStatus(trip);
+  var sbdg={upcoming:bdg('Upcoming','badge-upcoming'),active:bdg('Active','badge-active'),completed:bdg('Completed','badge-completed'),empty:bdg('Empty','badge-muted')}[st]||'';
+  var h='<div class="trip-card">';
+  h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">';
+  h+='<div style="font-size:16px;font-weight:600;color:#1a1a1a">'+trip.name+'</div>'+sbdg+'</div>';
+  h+='<div style="font-size:13px;color:#888;margin-bottom:10px">'+tripRange(trip)+'</div>';
+  if(trip.cityDefs.length){
+    h+='<div>';
+    trip.cityDefs.forEach(function(c,i){h+='<span class="city-chip">'+c.name+'</span>'+(i<trip.cityDefs.length-1?'<span style="color:#ccc;font-size:11px;margin:0 1px">→</span>':'');});
+    h+='</div>';
+  }else{
+    h+='<div style="font-size:13px;color:#ccc;font-style:italic">No cities added yet</div>';
+  }
+  h+='<div style="display:flex;justify-content:flex-end;margin-top:12px;gap:8px">';
+  h+='<button onclick="event.stopPropagation();delTrip(\''+trip.id+'\')" style="padding:6px 12px;border-radius:8px;border:1px solid #e5e5e0;background:transparent;font-size:12px;color:#888">Delete</button>';
+  h+='<button onclick="openTrip(\''+trip.id+'\')" style="padding:6px 16px;border-radius:8px;border:none;background:#0d2440;color:#fff;font-size:12px;font-weight:500">Open →</button>';
+  h+='</div></div>';
+  return h;
+}
+
+function rTrip(){
+  var trip=getTrip();if(!trip){screen='home';render();return;}
+  var cp=CP[sel%4];
+  var h='';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem;border-bottom:1px solid #e5e5e0;background:#fff;position:sticky;top:0;z-index:10">';
+  h+='<div style="display:flex;align-items:center;gap:10px">';
+  h+='<button onclick="screen=\'home\';render()" style="padding:5px 10px;border-radius:8px;border:1px solid #e5e5e0;background:transparent;font-size:13px;color:#555">← Home</button>';
+  h+='<div style="font-size:15px;font-weight:600;color:#0d2440;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+trip.name+'">'+trip.name+'</div>';
+  h+='</div>';
+  h+='<div style="display:flex;align-items:center;gap:6px">';
+  h+='<div class="mode-toggle">';
+  h+='<button class="mode-btn'+(mode==='pack'&&tab==='city'?' on':'')+'" onclick="mode=\'pack\';tab=\'city\';render()">Packing</button>';
+  h+='<button class="mode-btn'+(mode==='travel'&&tab==='city'?' on':'')+'" onclick="mode=\'travel\';tab=\'city\';render()">Traveling</button>';
+  h+='<button class="mode-btn'+(tab==='summary'?' on':'')+'" onclick="tab=\'summary\';render()">Summary</button>';
+  h+='</div>';
+  h+='<button onclick="editOpen=null;screen=\'edit\';render()" style="padding:5px 12px;border-radius:8px;border:1px solid #e5e5e0;background:transparent;font-size:12px;color:#555">Edit</button>';
+  h+='</div></div>';
+
+  if(tab==='summary'){h+=rSummary();document.getElementById('root').innerHTML=h;return;}
+
+  h+='<div style="display:flex;align-items:center;gap:6px;padding:10px 1rem;border-bottom:1px solid #e5e5e0;overflow-x:auto;background:#fff;-webkit-overflow-scrolling:touch">';
+  CITIES.forEach(function(c,i){
+    var ac=i===sel;var cp2=CP[i%4];
+    h+='<button onclick="sel='+i+';dayI=0;tab=\'city\';render()" style="flex-shrink:0;padding:5px 14px;border-radius:50px;border:1px solid '+(ac?cp2.b:'#e5e5e0')+';background:'+(ac?cp2.a:'transparent')+';color:'+(ac?cp2.c:'#888')+';font-size:13px">'+c.name+(c.loading?' …':'')+'</button>';
+    if(i<CITIES.length-1)h+='<span style="color:#ccc;font-size:12px;flex-shrink:0">→</span>';
+  });
+  if(!CITIES.length)h+='<span style="font-size:13px;color:#aaa">No cities — tap Edit to add</span>';
+  h+='</div>';
+
+  if(!CITIES.length){h+='<div style="padding:3rem;text-align:center;color:#888;font-size:13px">Add cities to your trip using the Edit button.</div>';document.getElementById('root').innerHTML=h;return;}
+
+  var city=CITIES[sel]||{};
+  h+='<div style="padding:1rem">';
+  h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.75rem;gap:8px;flex-wrap:wrap">';
+  h+='<div><div style="font-size:22px;font-weight:600">'+city.name+'</div>';
+  h+='<div style="font-size:13px;color:#888;margin-top:2px">'+(city.sub||'')+(city.dayTrips&&city.dayTrips.length?' · <span style="color:#185fa5">'+city.dayTrips.length+' day trip</span>':'')+'</div></div>';
+  if(!city.loading)h+='<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+confB(city.conf)+' '+aqiB(city.aqi)+'</div>';
+  h+='</div>';
+  if(city.error&&!city.daily.length){h+='<div style="background:#fcebeb;border:1px solid #f09595;border-radius:8px;padding:12px;color:#a32d2d;font-size:13px;margin-bottom:1rem">'+city.error+'</div>';}
+  if(city.loading){h+='<div class="loading-pulse">Fetching live weather…</div></div>';document.getElementById('root').innerHTML=h;return;}
+
+  if(mode==='travel'&&city.current){
+    var cur=city.current;
+    h+='<div class="right-now" style="background:'+cp.a+';border:1px solid '+cp.b+'">';
+    h+='<div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Right now — live</div>';
+    h+='<div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap">';
+    h+='<div style="font-size:44px;font-weight:600;line-height:1;color:#1a1a1a">'+cur.temp+'°</div>';
+    h+='<div style="padding-bottom:4px">'+bdg(cur.cond,cc(cur.cond))+'<div style="font-size:13px;color:#555;margin-top:6px">Feels like '+cur.fl+'°</div></div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;font-size:12px;color:#888;padding-bottom:4px;margin-left:auto">';
+    h+='<span>Wind <b style="color:#1a1a1a">'+cur.wind+' mph</b></span><span>Humidity <b style="color:#1a1a1a">'+cur.humidity+'%</b></span>';
+    h+='<span>Visibility <b style="color:#1a1a1a">'+cur.vis+'</b></span></div></div></div>';
+  }
+
+  if(mode==='travel'){var ra=city.hourly.filter(function(hr){return hr.rain>=60;});if(ra.length){var at=ra.length>1?'Rain expected '+ra[0].t+' – '+ra[ra.length-1].t:'Rain expected around '+ra[0].t;h+='<div class="alert-box alert-info">'+at+' — bring an umbrella</div>';}}
+  if(mode==='pack'){var rd=city.daily.filter(function(d){return d.rain>=60;}).map(function(d){return d.d.split(' ').slice(0,2).join(' ');});if(rd.length)h+='<div class="alert-box alert-info">Rain likely on '+rd.join(', ')+' — pack waterproof gear</div>';}
+
+  h+='<div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Daily forecast</div>';
+  h+='<div class="day-grid">';
+  city.daily.forEach(function(d,i){
+    var act=i===dayI;
+    h+='<div class="day-card'+(act?' sel':'')+'" onclick="dayI='+i+';render()" style="'+(act?'background:'+cp.a+';border-color:'+cp.b:'')+'">';
+    h+='<div style="font-size:12px;color:#888;margin-bottom:6px">'+d.d+'</div>'+bdg(d.cond,cc(d.cond));
+    h+='<div style="font-size:24px;font-weight:600;color:#1a1a1a;margin-top:8px">'+d.hi+'°<span style="font-size:16px;color:#888">/'+d.lo+'°</span></div>';
+    h+='<div style="font-size:12px;color:#888;margin-top:2px">Feels like '+d.fl+'°</div>';
+    h+='<div style="font-size:12px;color:#185fa5;margin-top:6px">'+d.rain+'% rain · '+d.wind+' mph</div>';
+    if(d.tripName)h+='<div style="margin-top:8px">'+bdg('Day trip: '+d.tripName,'badge-info')+'</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<div style="border-top:1px solid #e5e5e0;margin:1.5rem 0"></div>';
+
+  var sd=city.daily[dayI]||{};
+  if(mode==='pack'){
+    h+='<div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Packing suggestions</div>';
+    h+='<div style="display:flex;flex-wrap:wrap;gap:8px">';
+    city.pack.forEach(function(item){h+='<span class="tag" style="background:'+cp.a+';border-color:'+cp.b+';color:'+cp.c+'">'+item+'</span>';});
+    h+='</div>';
+  }else if(city.hourly.length){
+    h+='<div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Hourly — '+(sd.d||'')+'</div>';
+    h+='<div class="hourly-row">';
+    city.hourly.forEach(function(hr){
+      var isR=hr.rain>=60;
+      h+='<div class="hour-card'+(isR?' rainy':'')+'">';
+      h+='<div style="font-size:11px;color:#888;margin-bottom:6px">'+hr.t+'</div>'+bdg(hr.cond,cc(hr.cond));
+      h+='<div style="font-size:20px;font-weight:600;color:#1a1a1a;margin-top:8px">'+hr.temp+'°</div>';
+      h+='<div style="font-size:11px;color:#888">feels '+hr.fl+'°</div>';
+      h+='<div style="font-size:11px;color:'+(isR?'#185fa5':'#888')+';margin-top:4px">'+hr.rain+'% rain</div></div>';
+    });
+    h+='</div>';
+    if(sd.tripName)h+='<div style="margin-top:1rem;background:#d1fae5;border:1px solid #34d399;border-radius:8px;padding:10px 14px;font-size:13px;color:#065f46">Day trip to '+sd.tripName+'</div>';
+  }
+  if(city.error&&city.daily.length)h+='<div style="margin-top:1rem;font-size:12px;color:#888;text-align:center">'+city.error+'</div>';
+  h+='</div>';
+  document.getElementById('root').innerHTML=h;
+}
+
+function rSummary(){
+  var trip=getTrip();
+  var h='<div style="padding:1rem">';
+  h+='<div style="font-size:16px;font-weight:500;margin-bottom:4px">'+trip.name+'</div>';
+  h+='<div style="font-size:13px;color:#888;margin-bottom:1.25rem">'+tripRange(trip)+' · '+trip.cityDefs.length+' cities</div>';
+  CITIES.forEach(function(city,ci){
+    h+='<div style="margin-bottom:2rem">';
+    h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">';
+    h+='<div style="font-size:15px;font-weight:600">'+city.name+'</div>';
+    h+='<div style="font-size:12px;color:#888">'+(city.sub||'')+'</div>';
+    if(!city.loading){h+=aqiB(city.aqi)+' '+confB(city.conf);}
+    h+='</div>';
+    if(city.loading){h+='<div class="loading-pulse">Loading…</div></div>';return;}
+    h+='<div style="overflow-x:auto;border:1px solid #e5e5e0;border-radius:12px">';
+    h+='<table class="summary-table"><thead><tr><th style="width:26%">Day</th><th>Cond.</th><th>High</th><th>Low</th><th>Feels</th><th>Rain</th><th>Wind</th></tr></thead><tbody>';
+    city.daily.forEach(function(d,di){
+      var ir=d.rain>=60;
+      h+='<tr onclick="tab=\'city\';sel='+ci+';dayI='+di+';render()">';
+      h+='<td><div>'+d.d+'</div>'+(d.tripName?'<div style="margin-top:3px">'+bdg('Day trip: '+d.tripName,'badge-info')+'</div>':'')+'</td>';
+      h+='<td>'+bdg(d.cond,cc(d.cond))+'</td><td style="font-weight:600;color:#1a1a1a">'+d.hi+'°</td>';
+      h+='<td>'+d.lo+'°</td><td>'+d.fl+'°</td>';
+      h+='<td style="color:'+(ir?'#185fa5':'#555')+'">'+d.rain+'%</td><td>'+d.wind+' mph</td></tr>';
+    });
+    h+='</tbody></table></div>';
+    var rd=city.daily.filter(function(d){return d.rain>=60;}).length;
+    if(rd)h+='<div style="margin-top:8px;font-size:12px;color:#185fa5">'+rd+' rainy day'+(rd>1?'s':'')+' in '+city.name+'</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  return h;
+}
+
+function rEdit(){
+  var trip=getTrip();if(!trip){screen='home';render();return;}
+  var h='';
+  h+='<div style="display:flex;align-items:center;gap:10px;padding:.75rem 1rem;border-bottom:1px solid #e5e5e0;background:#fff;position:sticky;top:0;z-index:10">';
+  h+='<button onclick="screen=\'trip\';render()" style="padding:5px 10px;border-radius:8px;border:1px solid #e5e5e0;background:transparent;font-size:13px;color:#555">← Back</button>';
+  h+='<div style="font-size:15px;font-weight:600;color:#0d2440">Edit trip</div>';
+  h+='</div>';
+  h+='<div style="padding:1rem">';
+  h+='<div style="margin-bottom:1.5rem">';
+  h+='<label class="flabel">Trip name</label>';
+  h+='<input id="tnm" type="text" value="'+trip.name+'" onblur="renameTripOnBlur()" style="font-size:16px;font-weight:500"/>';
+  h+='</div>';
+  h+='<div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Cities ('+trip.cityDefs.length+')</div>';
+  if(!trip.cityDefs.length){h+='<div style="font-size:13px;color:#aaa;text-align:center;padding:1.5rem 0;font-style:italic">No cities yet — add one below</div>';}
+  trip.cityDefs.forEach(function(def,i){
+    var isOpen=editOpen===i;
+    h+='<div class="edit-city-row">';
+    h+='<div class="edit-city-hdr">';
+    h+='<div style="display:flex;flex-direction:column;gap:3px;margin-right:2px">';
+    h+='<button class="icon-btn" onclick="moveCity('+i+',-1)" style="font-size:12px'+(i===0?';opacity:.25;pointer-events:none':'')+'">↑</button>';
+    h+='<button class="icon-btn" onclick="moveCity('+i+',1)" style="font-size:12px'+(i===trip.cityDefs.length-1?';opacity:.25;pointer-events:none':'')+'">↓</button>';
+    h+='</div>';
+    h+='<div style="flex:1;min-width:0">';
+    h+='<div style="font-size:15px;font-weight:600">'+def.name+(def.country?' <span style="font-weight:400;color:#888;font-size:13px">'+def.country+'</span>':'')+'</div>';
+    h+='<div style="font-size:12px;color:#888">'+fmtRange(def.from,def.to)+(def.dayTrips&&def.dayTrips.length?' · '+def.dayTrips.length+' day trip':'')+'</div>';
+    h+='</div>';
+    h+='<button class="icon-btn" onclick="toggleEdit('+i+')" style="color:#185fa5;border-color:#85b7eb;font-size:12px;width:auto;padding:0 10px">'+(isOpen?'Done':'Edit')+'</button>';
+    h+='<button class="icon-btn del" onclick="delCity('+i+')" title="Remove">✕</button>';
+    h+='</div>';
+    if(isOpen){
+      h+='<div class="edit-city-form">';
+      h+='<div class="fl2" style="margin-bottom:8px">';
+      h+='<div><label class="flabel">City</label><input id="ec_n" type="text" value="'+def.name+'"/></div>';
+      h+='<div><label class="flabel">Country</label><input id="ec_co" type="text" value="'+(def.country||'')+'"/></div>';
+      h+='</div>';
+      h+='<div class="fl2" style="margin-bottom:12px">';
+      h+='<div><label class="flabel">Arrival</label><input id="ec_f" type="date" value="'+def.from+'"/></div>';
+      h+='<div><label class="flabel">Departure</label><input id="ec_t" type="date" value="'+def.to+'"/></div>';
+      h+='</div>';
+      h+='<label class="flabel" style="margin-bottom:8px">Day trips</label>';
+      h+='<div id="dt_c">';
+      if(def.dayTrips&&def.dayTrips.length){
+        def.dayTrips.forEach(function(dt){
+          h+='<div class="dt-row"><input class="dt-n" type="text" value="'+dt.name+'" placeholder="Destination"/><input class="dt-d" type="date" value="'+dt.date+'" style="max-width:140px"/><button class="icon-btn del" onclick="this.parentElement.remove()" type="button">✕</button></div>';
+        });
+      }
+      h+='</div>';
+      h+='<button onclick="addDtRow()" style="padding:6px 12px;border-radius:8px;border:1px dashed #ccc;background:transparent;font-size:12px;color:#888;margin-bottom:12px">+ Add day trip</button><br/>';
+      h+='<button onclick="saveCity('+i+')" style="width:100%;padding:10px;border-radius:8px;border:none;background:#0d2440;color:#fff;font-size:14px;font-weight:500">Save changes</button>';
+      h+='</div>';
+    }
+    h+='</div>';
+  });
+
+  h+='<div style="border-top:1px solid #e5e5e0;margin:1.5rem 0"></div>';
+  h+='<div style="font-size:13px;font-weight:600;color:#1a1a1a;margin-bottom:12px">Add a city</div>';
+  h+='<div class="fl2" style="margin-bottom:8px">';
+  h+='<div><label class="flabel">City</label><input id="nc_n" type="text" placeholder="e.g. Rome"/></div>';
+  h+='<div><label class="flabel">Country</label><input id="nc_co" type="text" placeholder="e.g. Italy"/></div>';
+  h+='</div>';
+  h+='<div class="fl2" style="margin-bottom:8px">';
+  h+='<div><label class="flabel">Arrival</label><input id="nc_f" type="date"/></div>';
+  h+='<div><label class="flabel">Departure</label><input id="nc_t" type="date"/></div>';
+  h+='</div>';
+  h+='<label class="flabel">Day trip (optional)</label>';
+  h+='<input id="nc_dt" type="text" placeholder="e.g. Cinque Terre" style="margin-bottom:12px"/>';
+  h+='<button onclick="addCity()" style="width:100%;padding:10px;border-radius:8px;border:1px solid #0d2440;background:transparent;color:#0d2440;font-size:14px;font-weight:500">+ Add to itinerary</button>';
+  h+='</div>';
+  document.getElementById('root').innerHTML=h;
+}
+
+if('serviceWorker'in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js').catch(function(e){console.log('SW:',e);});});}
+init();
+</script>
+</body>
+</html>
