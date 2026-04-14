@@ -162,6 +162,12 @@ function fmtTime(t){
   var p=t.split(':'),h=parseInt(p[0]),m=p[1],ampm=h>=12?'PM':'AM';
   h=h%12||12;return h+':'+m+' '+ampm;
 }
+function fmtTimeH(t){
+  // Hour-only display — e.g. "8 AM", "6 PM"
+  if(!t)return'';
+  var h=parseInt(t.split(':')[0]),ampm=h>=12?'PM':'AM';
+  h=h%12||12;return h+' '+ampm;
+}
 function wmo(c){
   if(c===0)return'Clear';if(c<=2)return c===1?'Mostly Clear':'Partly Cloudy';if(c===3)return'Overcast';
   if(c<=48)return'Foggy';if(c<=55)return'Drizzle';if(c<=65)return'Rain';if(c<=77)return'Snow';
@@ -371,6 +377,28 @@ function moveCity(i,d){
   saveTrips();editOpen=null;render();
 }
 
+function addNcDtRow(){
+  var c=document.getElementById('nc_dt_c');if(!c)return;
+  var rid='ncdt_'+(++dtRowCtr);
+  var row=document.createElement('div');row.className='dt-row';row.dataset.lat='';row.dataset.lon='';
+  row.innerHTML=
+    '<div style="flex:1">'
+      +'<div style="display:flex;gap:6px;margin-bottom:8px">'
+        +'<div class="srch-wrap" style="flex:1">'
+          +'<input id="'+rid+'_n" class="dt-n" type="text" placeholder="Day trip destination" oninput="srchInput(\''+rid+'_n\',\''+rid+'_dd\')" autocomplete="off"/>'
+          +'<div id="'+rid+'_dd" class="srch-dd" onmousedown="handleDtPick(event,\''+rid+'\',this.parentElement.parentElement.parentElement)"></div>'
+        +'</div>'
+        +'<input class="dt-d" type="date" style="max-width:140px;min-height:48px"/>'
+      +'</div>'
+      +'<div class="fl2">'
+        +'<div><label class="flabel" style="font-size:10px">Depart time</label><input class="dt-depart" type="time"/></div>'
+        +'<div><label class="flabel" style="font-size:10px">Return time</label><input class="dt-return" type="time"/></div>'
+      +'</div>'
+    +'</div>'
+    +'<button class="icon-btn del" onclick="this.parentElement.remove()" type="button" style="margin-top:0;align-self:flex-start">✕</button>';
+  c.appendChild(row);
+}
+
 function addDtRow(){
   var c=document.getElementById('dt_c');if(!c)return;
   var rid='dt_'+(++dtRowCtr);
@@ -407,13 +435,26 @@ function addCity(){
   var f=document.getElementById('nc_f').value;
   var t=document.getElementById('nc_t').value;
   var arrivalTime=document.getElementById('nc_at').value||'';
-  var dt=(document.getElementById('nc_dt').value||'').trim();
   if(!n||!f||!t){alert('Name and dates required.');return;}
+  // Collect day trip rows from new-city container
+  var dts=[];
+  var ncDtC=document.getElementById('nc_dt_c');
+  if(ncDtC){
+    ncDtC.querySelectorAll('.dt-row').forEach(function(row){
+      var nm=(row.querySelector('.dt-n')||{}).value;
+      var dt=(row.querySelector('.dt-d')||{}).value;
+      var dep=(row.querySelector('.dt-depart')||{}).value||'';
+      var ret=(row.querySelector('.dt-return')||{}).value||'';
+      var dtLat=row.dataset.lat?parseFloat(row.dataset.lat):null;
+      var dtLon=row.dataset.lon?parseFloat(row.dataset.lon):null;
+      if(nm&&nm.trim())dts.push({name:nm.trim(),date:dt||f,departTime:dep,returnTime:ret,lat:dtLat,lon:dtLon});
+    });
+  }
   var trip=getTrip();
-  var def={id:'c_'+Date.now(),name:n,country:co,lat:lat,lon:lon,from:f,to:t,arrivalTime:arrivalTime,dayTrips:dt?[{name:dt,date:f}]:[]};
+  var def={id:'c_'+Date.now(),name:n,country:co,lat:lat,lon:lon,from:f,to:t,arrivalTime:arrivalTime,dayTrips:dts};
   trip.cityDefs.push(def);saveTrips();
   CITIES.push(Object.assign({},def,{loading:true,error:null,sub:co+' · '+fmtRange(f,t),aqi:null,current:null,daily:[],hourly:[],hourlyByDate:{},dayTripHourly:{},conf:'low',pack:[]}));
-  ['nc_n','nc_co','nc_dt'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['nc_n','nc_co'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   ['nc_f','nc_t','nc_at'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   delete srchSelections['nc_n'];hideDd('nc_n_dd');
   render();loadWeather(CITIES.length-1);
@@ -542,6 +583,42 @@ function rTrip(){
   }
   if(mode==='travel'){var ra=city.hourly.filter(function(hr){return hr.rain>=60;});if(ra.length){var at=ra.length>1?'Rain expected '+ra[0].t+' – '+ra[ra.length-1].t:'Rain expected around '+ra[0].t;h+='<div class="alert-box alert-info">'+at+' — bring an umbrella</div>';}}
   if(mode==='pack'){var rd=city.daily.filter(function(d){return d.rain>=60;}).map(function(d){return d.d.split(' ').slice(0,2).join(' ');});if(rd.length)h+='<div class="alert-box alert-info">Rain likely on '+rd.join(', ')+' — pack waterproof gear</div>';}
+
+  // ── In travel mode: hourly section comes FIRST ──
+  var sd0=city.daily[dayI]||{};
+  if(mode==='travel'){
+    var allHourly0=(city.hourlyByDate&&city.hourlyByDate[sd0.dateStr])||city.hourly||[];
+    var isArrivalDay0=!!(city.arrivalTime&&sd0.dateStr===city.from&&sel>0);
+    var prevCity0=isArrivalDay0?CITIES[sel-1]:null;
+    var prevHourly0=isArrivalDay0&&prevCity0&&prevCity0.hourlyByDate?prevCity0.hourlyByDate[sd0.dateStr]||[]:[];
+    var arrHour0=isArrivalDay0?parseInt(city.arrivalTime.split(':')[0]):-1;
+    var activeDayTrip0=city.dayTrips?city.dayTrips.find(function(dt){return dt.date===sd0.dateStr&&(dt.departTime||dt.returnTime);}):null;
+    var dtHourly0=activeDayTrip0&&city.dayTripHourly?city.dayTripHourly[sd0.dateStr]||[]:[];
+    var deptHour0=activeDayTrip0&&activeDayTrip0.departTime?parseInt(activeDayTrip0.departTime.split(':')[0]):-1;
+    var retHour0=activeDayTrip0&&activeDayTrip0.returnTime?parseInt(activeDayTrip0.returnTime.split(':')[0]):25;
+    if(isArrivalDay0&&prevCity0&&prevHourly0.length){
+      var beforeArr0=prevHourly0.filter(function(hr){return hr.hour<arrHour0;});
+      var afterArr0=allHourly0.filter(function(hr){return hr.hour>=arrHour0;});
+      h+='<div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;font-weight:500">Hourly — '+sd0.d+'</div>';
+      if(beforeArr0.length){h+='<div style="font-size:12px;color:#888;margin-bottom:6px">In '+prevCity0.name+'</div>';h+=renderHourCards(beforeArr0,'');}
+      h+=travelDivider('✈','Arrived in '+city.name+' · '+fmtTimeH(city.arrivalTime));
+      if(afterArr0.length){h+='<div style="font-size:12px;color:#888;margin-bottom:6px">In '+city.name+'</div>';h+=renderHourCards(afterArr0,'');}
+    }else if(activeDayTrip0&&deptHour0>=0){
+      var beforeTrip0=allHourly0.filter(function(hr){return hr.hour<deptHour0;});
+      var duringTrip0=(dtHourly0.length?dtHourly0:allHourly0).filter(function(hr){return hr.hour>=deptHour0&&hr.hour<retHour0;});
+      var afterTrip0=allHourly0.filter(function(hr){return hr.hour>=retHour0;});
+      h+='<div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;font-weight:500">Hourly — '+sd0.d+'</div>';
+      if(beforeTrip0.length){h+='<div style="font-size:12px;color:#888;margin-bottom:6px">In '+city.name+'</div>';h+=renderHourCards(beforeTrip0,'');}
+      h+=travelDivider('🚌','Day trip to '+activeDayTrip0.name+(activeDayTrip0.departTime?' · Depart '+fmtTimeH(activeDayTrip0.departTime):''));
+      h+=renderHourCards(duringTrip0,(dtHourly0.length?'daytrip':''));
+      if(activeDayTrip0.returnTime&&afterTrip0.length){h+=travelDivider('🏠','Returned to '+city.name+' · '+fmtTimeH(activeDayTrip0.returnTime));h+=renderHourCards(afterTrip0,'');}
+    }else if(allHourly0.length){
+      h+='<div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;font-weight:500">Hourly — '+sd0.d+'</div>';
+      h+=renderHourCards(allHourly0,'');
+    }
+    h+='<div style="border-top:1px solid #e5e5e0;margin:1.5rem 0"></div>';
+  }
+
   h+='<div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;font-weight:500">Daily forecast</div>';
   h+='<div class="day-grid">';
   city.daily.forEach(function(d,i){
@@ -553,7 +630,7 @@ function rTrip(){
     h+='<div style="font-size:13px;color:#185fa5;margin-top:7px">'+d.rain+'% rain · '+d.wind+' mph</div>';
     if(d.tripName){
       h+='<div style="margin-top:9px">'+bdg('Day trip: '+d.tripName,'badge-info')+'</div>';
-      if(d.tripDepart||d.tripReturn)h+='<div style="font-size:11px;color:#888;margin-top:4px">'+(d.tripDepart?fmtTime(d.tripDepart):'?')+' – '+(d.tripReturn?fmtTime(d.tripReturn):'?')+'</div>';
+      if(d.tripDepart||d.tripReturn)h+='<div style="font-size:11px;color:#888;margin-top:4px">'+(d.tripDepart?fmtTimeH(d.tripDepart):'?')+' – '+(d.tripReturn?fmtTimeH(d.tripReturn):'?')+'</div>';
     }
     h+='</div>';
   });
@@ -565,55 +642,6 @@ function rTrip(){
     h+='<div style="display:flex;flex-wrap:wrap;gap:10px">';
     city.pack.forEach(function(item){h+='<span class="tag" style="background:'+cp.a+';border-color:'+cp.b+';color:'+cp.c+'">'+item+'</span>';});
     h+='</div>';
-  }else{
-    // ── Traveling mode hourly — with split views ──
-    var allHourly=(city.hourlyByDate&&city.hourlyByDate[sd.dateStr])||city.hourly||[];
-    // Check: is this an arrival day for this city (first day of stay, has arrival time, not first city)?
-    var isArrivalDay=!!(city.arrivalTime&&sd.dateStr===city.from&&sel>0);
-    var prevCity=isArrivalDay?CITIES[sel-1]:null;
-    var prevHourly=isArrivalDay&&prevCity&&prevCity.hourlyByDate?prevCity.hourlyByDate[sd.dateStr]||[]:[];
-    var arrHour=isArrivalDay?parseInt(city.arrivalTime.split(':')[0]):-1;
-    // Check: does this day have a day trip with times?
-    var activeDayTrip=city.dayTrips?city.dayTrips.find(function(dt){return dt.date===sd.dateStr&&(dt.departTime||dt.returnTime);}):null;
-    var dtHourly=activeDayTrip&&city.dayTripHourly?city.dayTripHourly[sd.dateStr]||[]:[];
-    var deptHour=activeDayTrip&&activeDayTrip.departTime?parseInt(activeDayTrip.departTime.split(':')[0]):-1;
-    var retHour=activeDayTrip&&activeDayTrip.returnTime?parseInt(activeDayTrip.returnTime.split(':')[0]):25;
-
-    if(isArrivalDay&&prevCity&&prevHourly.length){
-      // Split: previous city until arrival, current city from arrival
-      var beforeArr=prevHourly.filter(function(hr){return hr.hour<arrHour;});
-      var afterArr=allHourly.filter(function(hr){return hr.hour>=arrHour;});
-      h+='<div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;font-weight:500">Hourly — '+sd.d+'</div>';
-      if(beforeArr.length){
-        h+='<div style="font-size:12px;color:#888;margin-bottom:6px">In '+prevCity.name+'</div>';
-        h+=renderHourCards(beforeArr,'');
-      }
-      h+=travelDivider('✈','Arrived in '+city.name+' · '+fmtTime(city.arrivalTime));
-      if(afterArr.length){
-        h+='<div style="font-size:12px;color:#888;margin-bottom:6px">In '+city.name+'</div>';
-        h+=renderHourCards(afterArr,'');
-      }
-    }else if(activeDayTrip&&deptHour>=0){
-      // Split: home base, day trip location, home base
-      var beforeTrip=allHourly.filter(function(hr){return hr.hour<deptHour;});
-      var duringTrip=(dtHourly.length?dtHourly:allHourly).filter(function(hr){return hr.hour>=deptHour&&hr.hour<retHour;});
-      var afterTrip=allHourly.filter(function(hr){return hr.hour>=retHour;});
-      h+='<div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;font-weight:500">Hourly — '+sd.d+'</div>';
-      if(beforeTrip.length){
-        h+='<div style="font-size:12px;color:#888;margin-bottom:6px">In '+city.name+'</div>';
-        h+=renderHourCards(beforeTrip,'');
-      }
-      h+=travelDivider('🚌','Day trip to '+activeDayTrip.name+(activeDayTrip.departTime?' · Depart '+fmtTime(activeDayTrip.departTime):''));
-      h+=renderHourCards(duringTrip,(dtHourly.length?'daytrip':''));
-      if(activeDayTrip.returnTime&&afterTrip.length){
-        h+=travelDivider('🏠','Returned to '+city.name+' · '+fmtTime(activeDayTrip.returnTime));
-        h+=renderHourCards(afterTrip,'');
-      }
-    }else if(allHourly.length){
-      h+='<div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;font-weight:500">Hourly — '+sd.d+'</div>';
-      h+=renderHourCards(allHourly,'');
-    }
-    if(sd.tripName&&!activeDayTrip)h+='<div style="margin-top:1rem;background:#d1fae5;border:1px solid #34d399;border-radius:10px;padding:12px 16px;font-size:14px;color:#065f46">Day trip to '+sd.tripName+'</div>';
   }
   if(city.error&&city.daily.length)h+='<div style="margin-top:1rem;font-size:13px;color:#888;text-align:center">'+city.error+'</div>';
   h+='</div>';
@@ -635,12 +663,12 @@ function rSummary(){
     h+='</div>';
     if(city.loading){h+='<div class="loading-pulse">Loading…</div></div>';return;}
     h+='<div style="overflow-x:auto;border:1px solid #e5e5e0;border-radius:12px">';
-    h+='<table class="summary-table"><thead><tr><th style="width:26%">Day</th><th>Cond.</th><th>High</th><th>Low</th><th>Feels</th><th>Rain</th><th>Wind</th></tr></thead><tbody>';
+    h+='<table class="summary-table"><thead><tr><th style="width:26%">Day</th><th style="width:18%">Cond.</th><th>High</th><th>Low</th><th>Feels</th><th>Rain</th><th>Wind</th></tr></thead><tbody>';
     city.daily.forEach(function(d,di){
       var ir=d.rain>=60;
       h+='<tr onclick="tab=\'city\';sel='+ci+';dayI='+di+';render()">';
-      h+='<td><div>'+d.d+'</div>'+(d.tripName?'<div style="margin-top:3px">'+bdg(d.tripName,'badge-info')+(d.tripDepart?' <span style="font-size:11px;color:#888">'+fmtTime(d.tripDepart)+' – '+fmtTime(d.tripReturn)+'</span>':'')+'</div>':'')+'</td>';
-      h+='<td>'+bdg(d.cond,cc(d.cond))+'</td><td style="font-weight:600;color:#1a1a1a">'+d.hi+'°</td>';
+      h+='<td><div>'+d.d+'</div>'+(d.tripName?'<div style="margin-top:3px">'+bdg(d.tripName,'badge-info')+(d.tripDepart?' <span style="font-size:11px;color:#888">'+fmtTimeH(d.tripDepart)+' – '+fmtTimeH(d.tripReturn)+'</span>':'')+'</div>':'')+'</td>';
+      h+='<td style="padding-left:4px;padding-right:4px">'+bdg(d.cond,cc(d.cond))+'</td><td style="font-weight:600;color:#1a1a1a">'+d.hi+'°</td>';
       h+='<td>'+d.lo+'°</td><td>'+d.fl+'°</td>';
       h+='<td style="color:'+(ir?'#185fa5':'#555')+'">'+d.rain+'%</td><td>'+d.wind+' mph</td></tr>';
     });
@@ -738,8 +766,9 @@ function rEdit(){
   h+='</div>';
   h+='<div style="margin-bottom:10px"><label class="flabel">Arrival time <span style="font-weight:400;color:#aaa">(optional)</span></label>';
   h+='<input id="nc_at" type="time" style="max-width:180px"/></div>';
-  h+='<label class="flabel">Day trip (optional)</label>';
-  h+='<div class="srch-wrap" style="margin-bottom:14px"><input id="nc_dt" type="text" placeholder="e.g. Mont-Saint-Michel" oninput="srchInput(\'nc_dt\',\'nc_dt_dd\')" autocomplete="off"/><div id="nc_dt_dd" class="srch-dd"></div></div>';
+  h+='<label class="flabel">Day trips <span style="font-weight:400;color:#aaa">(optional)</span></label>';
+  h+='<div id="nc_dt_c"></div>';
+  h+='<button onclick="addNcDtRow()" style="padding:10px 16px;border-radius:10px;border:1px dashed #ccc;background:transparent;font-size:14px;color:#888;margin-bottom:14px;min-height:44px;width:100%">+ Add day trip</button>';
   h+='<button onclick="addCity()" style="width:100%;padding:14px;border-radius:10px;border:1px solid #0d2440;background:transparent;color:#0d2440;font-size:16px;font-weight:500;min-height:52px">+ Add to itinerary</button>';
   h+='</div>';
   document.getElementById('root').innerHTML=h;
