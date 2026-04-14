@@ -1,6 +1,6 @@
 {
-  "name": "TripWeather",
-  "short_name": "TripWeather",
+  "name": "Nimbus Weather",
+  "short_name": "Nimbus",
   "description": "Multi-city trip weather planner with packing and travel modes",
   "start_url": "./index.html",
   "display": "standalone",
