@@ -1,4 +1,4 @@
-var CACHE='nimbus-v1';
+var CACHE='nimbus-v5';
 var ASSETS=['./index.html','./manifest.json','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',function(e){

@@ -51,8 +51,8 @@ input[type=time]{min-height:44px;font-size:15px}
 .summary-table tr:hover td{background:#f0f0ea;cursor:pointer}
 .loading-pulse{color:#888;font-size:14px;padding:2rem;text-align:center;background:#f5f5f0;border-radius:12px;border:1px solid #e5e5e0}
 .mode-toggle{display:flex;gap:2px;background:#f5f5f0;border-radius:12px;padding:3px;border:1px solid #e5e5e0}
-.mode-btn{padding:8px 12px;border-radius:9px;border:1px solid transparent;background:transparent;font-size:13px;color:#888;transition:all .15s;white-space:nowrap;min-height:40px}
-.mode-btn.on{background:#fff;border-color:#ddd;color:#1a1a1a;font-weight:500}
+.mode-btn{padding:8px 12px;border-radius:9px;border:1px solid transparent;background:transparent;font-size:13px;color:#888;transition:all .15s;white-space:nowrap;min-height:40px;font-family:inherit}
+.mode-btn.on{background:#fff;border-color:#ddd;color:#1a1a1a;font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .right-now{border-radius:14px;padding:16px 18px;margin-bottom:1rem}
 .offline-bar{display:none;background:#faeeda;border-bottom:1px solid #ef9f27;padding:10px 1rem;font-size:13px;color:#854f0b;text-align:center}
 .trip-card{border:1px solid #e5e5e0;border-radius:16px;padding:1.25rem;margin-bottom:12px;background:#fff;transition:border-color .15s;-webkit-tap-highlight-color:transparent}
@@ -539,17 +539,18 @@ function rTripCard(trip){
 function rTrip(){
   var trip=getTrip();if(!trip){screen='home';render();return;}
   var cp=CP[sel%4];
-  var h='<div style="display:flex;align-items:center;justify-content:space-between;padding:.875rem 1rem;border-bottom:1px solid #e5e5e0;background:#fff;position:sticky;top:0;z-index:10">';
-  h+='<div style="display:flex;align-items:center;gap:10px">';
-  h+='<button onclick="screen=\'home\';render()" style="padding:8px 12px;border-radius:10px;border:1px solid #e5e5e0;background:transparent;font-size:14px;color:#555;min-height:44px">← Home</button>';
-  h+='<div style="font-size:16px;font-weight:600;color:#0d2440;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+trip.name+'</div>';
-  h+='</div><div style="display:flex;align-items:center;gap:6px">';
-  h+='<div class="mode-toggle">';
-  h+='<button class="mode-btn'+(mode==='pack'&&tab==='city'?' on':'')+'" onclick="mode=\'pack\';tab=\'city\';render()">Packing</button>';
-  h+='<button class="mode-btn'+(mode==='travel'&&tab==='city'?' on':'')+'" onclick="mode=\'travel\';tab=\'city\';render()">Traveling</button>';
-  h+='<button class="mode-btn'+(tab==='summary'?' on':'')+'" onclick="tab=\'summary\';render()">Summary</button>';
+  var h='<div style="background:#fff;border-bottom:1px solid #e5e5e0;position:sticky;top:0;z-index:10">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem .5rem">';
+  h+='<div style="display:flex;align-items:center;gap:8px;min-width:0">';
+  h+='<button onclick="screen=\'home\';render()" style="padding:8px 12px;border-radius:10px;border:1px solid #e5e5e0;background:transparent;font-size:14px;color:#555;min-height:44px;flex-shrink:0">← Home</button>';
+  h+='<div style="font-size:16px;font-weight:600;color:#0d2440;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+trip.name+'</div>';
   h+='</div>';
-  h+='<button onclick="editOpen=null;screen=\'edit\';render()" style="padding:8px 14px;border-radius:10px;border:1px solid #e5e5e0;background:transparent;font-size:13px;color:#555;min-height:44px">Edit</button>';
+  h+='<button onclick="editOpen=null;screen=\'edit\';render()" style="padding:8px 14px;border-radius:10px;border:1px solid #e5e5e0;background:transparent;font-size:13px;color:#555;min-height:44px;flex-shrink:0">Edit</button>';
+  h+='</div>';
+  h+='<div style="display:flex;padding:0 1rem .625rem;gap:2px;background:#f5f5f0;margin:0 1rem .625rem;border-radius:11px;padding:3px">';
+  h+='<button class="mode-btn'+(mode==='pack'&&tab==='city'?' on':'')+'" onclick="mode=\'pack\';tab=\'city\';render()" style="flex:1;text-align:center">Packing</button>';
+  h+='<button class="mode-btn'+(mode==='travel'&&tab==='city'?' on':'')+'" onclick="mode=\'travel\';tab=\'city\';render()" style="flex:1;text-align:center">Traveling</button>';
+  h+='<button class="mode-btn'+(tab==='summary'?' on':'')+'" onclick="tab=\'summary\';render()" style="flex:1;text-align:center">Summary</button>';
   h+='</div></div>';
   if(tab==='summary'){h+=rSummary();document.getElementById('root').innerHTML=h;return;}
   h+='<div style="display:flex;align-items:center;gap:8px;padding:12px 1rem;border-bottom:1px solid #e5e5e0;overflow-x:auto;background:#fff;-webkit-overflow-scrolling:touch">';
@@ -565,7 +566,7 @@ function rTrip(){
   h+='<div style="padding:1rem">';
   h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.875rem;gap:8px;flex-wrap:wrap">';
   h+='<div><div style="font-size:24px;font-weight:600">'+city.name+'</div>';
-  h+='<div style="font-size:14px;color:#888;margin-top:3px">'+(city.sub||'')+(city.arrivalTime?' · Arrives '+fmtTime(city.arrivalTime):'')+(city.dayTrips&&city.dayTrips.length?' · <span style="color:#185fa5">'+city.dayTrips.length+' day trip</span>':'')+'</div></div>';
+  h+='<div style="font-size:14px;color:#888;margin-top:3px">'+(city.sub||'')+(city.arrivalTime?' · Arrives '+fmtTimeH(city.arrivalTime):'')+(city.dayTrips&&city.dayTrips.length?' · <span style="color:#185fa5">'+city.dayTrips.length+' day trip</span>':'')+'</div></div>';
   if(!city.loading)h+='<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+confB(city.conf)+' '+aqiB(city.aqi)+'</div>';
   h+='</div>';
   if(city.error&&!city.daily.length)h+='<div style="background:#fcebeb;border:1px solid #f09595;border-radius:10px;padding:14px;color:#a32d2d;font-size:14px;margin-bottom:1rem">'+city.error+'</div>';
@@ -658,7 +659,7 @@ function rSummary(){
     h+='<div style="margin-bottom:2rem">';
     h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
     h+='<div style="font-size:16px;font-weight:600">'+city.name+'</div>';
-    h+='<div style="font-size:13px;color:#888">'+(city.sub||'')+(city.arrivalTime?' · Arrives '+fmtTime(city.arrivalTime):'')+'</div>';
+    h+='<div style="font-size:13px;color:#888">'+(city.sub||'')+(city.arrivalTime?' · Arrives '+fmtTimeH(city.arrivalTime):'')+'</div>';
     if(!city.loading){h+=aqiB(city.aqi)+' '+confB(city.conf);}
     h+='</div>';
     if(city.loading){h+='<div class="loading-pulse">Loading…</div></div>';return;}
@@ -701,7 +702,7 @@ function rEdit(){
     h+='<div style="flex:1;min-width:0">';
     h+='<div style="font-size:16px;font-weight:600;color:#1a1a1a">'+def.name+(def.country?' <span style="font-weight:400;color:#888;font-size:14px">'+def.country+'</span>':'')+'</div>';
     var subParts=[fmtRange(def.from,def.to)];
-    if(def.arrivalTime)subParts.push('Arrives '+fmtTime(def.arrivalTime));
+    if(def.arrivalTime)subParts.push('Arrives '+fmtTimeH(def.arrivalTime));
     if(def.dayTrips&&def.dayTrips.length)subParts.push(def.dayTrips.length+' day trip');
     h+='<div style="font-size:13px;color:#888;margin-top:2px">'+subParts.join(' · ')+'</div>';
     if(def.lat&&def.lon)h+='<div style="font-size:11px;color:#aaa;font-family:monospace;margin-top:2px">'+def.lat.toFixed(3)+'°, '+def.lon.toFixed(3)+'°</div>';
